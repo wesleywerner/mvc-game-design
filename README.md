@@ -1,16 +1,12 @@
-# Table of contents
+# MVC Game Design Pattern
 
-[TOC]
+This document details how to implement the MVC design pattern for games.
 
-# The purpose of this document
+By decoupling the View, the Controller and the Model, and using an event manager to communicate between them, we make the code more maintainable, and it allows us to implement other neat controllers like:
 
-Implement the MVC design pattern for a 2D graphical RPG Roguelike game.
-By decoupling the view, controller and model and using an event manager to
-communicate between them, we make the code more maintainable and allow us to
-implement other neat controllers like:
-
-* a View for graphic on mobile devices.
-* a Controller for touch screens.
+* a View for reduced graphics to fit on mobile devices.
+* a Controller for touch screens devices.
+* Networking.
 
 _For more on this design pattern, see [references](#references)_
 
@@ -52,7 +48,7 @@ This shows that even if the Controller does not know anything about the player's
 
 Nor does the View care how the player is controlling our game. The View only cares about showing on screen the current model state. Since the View also listens to posted events, it will pick up mouse clicks and key presses that integrate into it's widgets.
 
-# The Code
+# The code
 
 We will implement our pattern in [Python](#references). We will create the Model, the View and the Controller. We will also create the file that hosts instances of each and links them together.
 
@@ -365,7 +361,7 @@ _Note the class comments and spacing between classes as per [PEP 8](#references)
                 listener.notify(event)
 ~~~
 
-## Binding it all together
+## Glue them together
 
 Now that we have our classes coded, we can create the entry point which creates instances of our classes, binds them together and starts the main Model loop.
 
@@ -393,7 +389,7 @@ if __name__ == '__main__':
 
 ~~~
 
-## Run the code
+## First run
 
 The code for this demo lives in the [code-01](code-01/) directory. You run it through Python:
 
@@ -481,7 +477,7 @@ We can use this to show game dialogue for more than one screen. Consider this:
 
 The View draws the dialogue text #1, and when the user presses the "anykey" we pop the stack and suddenly the View draws text #2. The Controller knows it's a dialogue mode and knows to pop the stack on the "anykey" press. Press enough keys, pop enough plates, we move through the storyline and get back to the game.
 
-## Implementing the state machine
+## Implementing the game states
 
 This section will go quick. I will summarize the changes and you can go look at the full code files by yourself. :]
 
