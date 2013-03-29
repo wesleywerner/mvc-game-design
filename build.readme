@@ -1,0 +1,13 @@
+You can build this document as a HTML syntax higlighted version. This is done via the included script:
+
+$ python build.py
+
+This requires:
+
+* python
+* python-pygments
+* python-markdown
+
+The table of contents will also be generated in the HTML. The "res" directory contains style and image resources, it should be copied along with the HTML.
+
+
