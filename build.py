@@ -3,6 +3,7 @@ import os
 import sys
 import shutil
 
+TOC_INCLUDE='# Table of contents\n\n[TOC]\n\n'
 STYLE_INCLUDE='<link rel="stylesheet" type="text/css" href="res/style.css">'
 BUILD_FILENAME='MVC Game Design by Wesley.html'
 
@@ -23,7 +24,7 @@ if __name__ == '__main__':
 
     print('building documentation...')
     with open('README.md', 'r') as intext:
-        rawtext = ''.join(intext.readlines())
+        rawtext = TOC_INCLUDE + ''.join(intext.readlines())
         html = markdown.markdown(
                     rawtext, extensions=[
                                         'toc', 
