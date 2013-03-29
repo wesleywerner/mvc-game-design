@@ -591,6 +591,8 @@ When you run this code, you will notice the game starts off in the menu. Spaceba
 
 # Rendering the level
 
+_This section is still Work In Progress :]_ 
+
 We will use the Tiled map editor to create game levels, and the PyTMX library for reading the level files - See [References](#references) below for links to these great pieces of code :]
 
 The best way to learn a library is to work through the included demo code.
@@ -599,43 +601,6 @@ Read through the demo and mentally note the classes it uses. Then browse those
 class sources and go through their properties and functions. 
 
 This will take some time, but it is rewarding when you use the library someone else has worked on. We can only thank them for their hard work!
-
-# Restructuring
-
-Existing code files will be restructured.
-(_slanted files await refactoring_)
-
-**MODEL**: aliveModel.py
-
-* _game.py_
-* _character.py_
-* _objects.py_
-* states.py
-* _stats.py_
-* _combat.py_
-* _bump.py_
-* _level.py_
-* _messages.py_
-
-**VIEW**: aliveView.py
-
-* resources.py
-* _ui.py_
-* _helper.py_
-* _audio.py_
-
-**CONTROLLER**: aliveController.py
-
-* input.py
-
-**OTHER**:
-
-* alive.py
-    * binds the objects together
-* eventmanager.py
-    * pygame provides an event manager but we implement our own so it is not coupled to pygame.
-* trace.py
-* color.py
 
 # License
 
