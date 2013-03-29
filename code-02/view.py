@@ -39,27 +39,52 @@ class GraphicalView(object):
             self.isinitialized = False
             pygame.quit()
         elif isinstance(event, TickEvent):
-            self.renderall()
+            if not self.isinitialized:
+                return
+            currentstate = self.model.state.peek()
+            if currentstate == model.STATE_MENU:
+                self.rendermenu()
+            if currentstate == model.STATE_PLAY:
+                self.renderplay()
+            if currentstate == model.STATE_HELP:
+                self.renderhelp()
             # limit the redraw speed to 30 frames per second
             self.clock.tick(30)
     
-    def renderall(self):
+    def rendermenu(self):
         """
-        Draw the current game state on screen.
-        Does nothing if isinitialized == False (pygame.init failed)
+        Render the game menu.
         """
-        
-        if not self.isinitialized:
-            return
-        # clear display
+
         self.screen.fill((0, 0, 0))
-        # draw some words on the screen
         somewords = self.smallfont.render(
-                    'The View is busy drawing on your screen', 
-                    True, 
-                    (0, 255, 0))
+                    'You are in the Menu. Space to play. Esc exits.', 
+                    True, (0, 255, 0))
         self.screen.blit(somewords, (0, 0))
-        # flip the display to show whatever we drew
+        pygame.display.flip()
+        
+    def renderplay(self):
+        """
+        Render the game play.
+        """
+
+        self.screen.fill((0, 0, 0))
+        somewords = self.smallfont.render(
+                    'You are Playing the game. F1 for help.', 
+                    True, (0, 255, 0))
+        self.screen.blit(somewords, (0, 0))
+        pygame.display.flip()
+        
+    def renderhelp(self):
+        """
+        Render the help screen.
+        """
+
+        self.screen.fill((0, 0, 0))
+        somewords = self.smallfont.render(
+                    'Help is here. space, escape or return.', 
+                    True, (0, 255, 0))
+        self.screen.blit(somewords, (0, 0))
         pygame.display.flip()
         
     def initialize(self):

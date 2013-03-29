@@ -48,88 +48,9 @@ Here we see how our our model pieces are connected:
 * Events
     * job: coordinates messages between listeners.
 
-This shows that even if the Controller does not know anything about the player's
-health, what level we are on, it still only catches key presses and sends out
-events to match.
+This shows that even if the Controller does not know anything about the player's health, what level we are on, it still only catches key presses and sends out events to match.
 
-Nor does the View care how the player is controlling our game. 
-The View only cares about showing on screen the current model state.
-Since the View also listens to posted events, it will pick up mouse clicks and
-key presses that integrate into it's widgets.
-
-# Game states
-
-The model is host to multiple game states, like:
-
-* playing
-    * The game is in play.
-    * Controls react to the playtime context.
-* dialogue
-    * The screen shows game storyline.
-    * The game is not running.
-    * Controls only respond to the dialog context.
-* menus
-    * The user can select a profile to play or continue play.
-    * The user can select to view the settings or other pages.
-    * The game is not running. 
-    * Controls only respond to the menu context.
-* settings
-    * The user can toggle audio or music.
-    * The game is not running.
-    * Controls only respond to the settings context.
-* intro
-    * Shows opening screen.
-* help
-    * Display a game help overlay.
-
-Since our View and Controller has strong links to the Model, both can look at
-the Model state, and decide what user keys to process, and what to draw.
-
-That is their domain, and their job.
-
-## State implementation
-
-Using a state machine to track these game states allows us interesting tricks otherwise difficult to do.
-
-### What is a state machine?
-
-It is a fancy name for "a list of values, Last one In is First one Out." LIFO.
-
-Think of it like a stack of dinner plates.
-
-              ===     <- we have a green plate on the table
-            #######   <- our wooden breakfast table
-
-You can peek() at what the topmost plate is, we see it is green, so we draw and react to events that mean "our game is busy playing". 
-
-When we push() a red plate on top of the stack, we draw and do things that mean "the game is now paused". 
-
-              ===     <- we now see a red plate on top of the stack
-              ===     ... green plate
-            #######   ... table
-
-To unpause, we simply pop() the top most plate off the stack, and we can now see the green plate again. Our game carries on playing.
-
-### Why would we do this?
-
-Because this allows us to easily unwind the stack to escape from game menus, options, dialogue screens and so forth.
-
-All our View needs to do, is draw whatever the current stack item says.
-All our Controller needs to do, is handle input for the current stack item.
-
-We can use this to show game dialogue for more than one screen. Consider this:
-
-              ===     ... dialogue text #1
-              ===     ... dialogue text #2
-              ===     ... dialogue text #3
-              ===     ... green plate
-            #######   ... table
-
-The View draws the dialogue text #1, and when the user presses the "anykey" we pop the stack and suddenly the View draws text #2. Neat. 
-
-The Controller knows it's a dialogue mode and knows to pop the stack on the "anykey" press. 
-
-Press enough keys, pop enough plates, we move through the storyline and get back to the game.
+Nor does the View care how the player is controlling our game. The View only cares about showing on screen the current model state. Since the View also listens to posted events, it will pick up mouse clicks and key presses that integrate into it's widgets.
 
 # The Code
 
@@ -444,8 +365,6 @@ _Note the class comments and spacing between classes as per [PEP 8](#references)
                 listener.notify(event)
 ~~~
 
-
-
 ## Binding it all together
 
 Now that we have our classes coded, we can create the entry point which creates instances of our classes, binds them together and starts the main Model loop.
@@ -492,9 +411,183 @@ The code for this demo lives in the [code-01](code-01/) directory. You run it th
 
 The term output shows the Initialize event was posted, that was when the View create it's window and started drawing itself on every TickEvent. Then some Input events fired while we press keys on the keyboard. Finally the Quit event fired when we pressed Escape.
 
-# Extending the game state
+# Game states
 
+The Game Model needs to have multiple game states, like:
 
+* playing
+    * The game is in play.
+    * Controls react to the playtime context.
+* dialogue
+    * The screen shows game storyline.
+    * The game is not running.
+    * Controls only respond to the dialog context.
+* menus
+    * The user can select a profile to play or continue play.
+    * The user can select to view the settings or other pages.
+    * The game is not running. 
+    * Controls only respond to the menu context.
+* settings
+    * The user can toggle audio or music.
+    * The game is not running.
+    * Controls only respond to the settings context.
+* intro
+    * Shows opening screen.
+* help
+    * Display a game help overlay.
+
+Since our View and Controller has strong links to the Model, both can look at
+the Model state, and decide what user keys to process, and what to draw.
+
+That is their domain, and their job.
+
+## The state machine
+
+We use a stack based state machine to track these game states.
+
+_What is a state machine?_
+
+It is a fancy name for "a list of values, Last one In, First one Out." LIFO.
+
+Think of it like a stack of dinner plates.
+
+              ===     <- we have a green plate on the table
+            #######   <- our wooden breakfast table
+
+When we peek() at the top plate we see it is green, so we draw and react to events that mean "our game is busy playing".
+
+When we push() a red plate on top of the stack, we draw and do things that mean "the game is now paused". 
+
+              ===     <- we now see a red plate on top of the stack
+              ===     ... green plate
+            #######   ... table
+
+To unpause we simply pop() the top most plate off the stack, and we can now see the green plate again. Our game carries on playing.
+
+**Why would we do this?**
+
+Because this allows us to easily unwind the stack to escape from game menus, options, dialogue screens and so forth. The player can open an arbitrary amount of menus, dialogues and screens, and it will unwind back to the beginning.
+
+All our View needs to do is draw whatever the current state is. All our Controller needs to do is handle input for the current state. 
+
+We can use this to show game dialogue for more than one screen. Consider this:
+
+              ===     ... dialogue text #1
+              ===     ... dialogue text #2
+              ===     ... dialogue text #3
+              ===     ... game play
+              ===     ... main menu
+            #######   ... 
+
+The View draws the dialogue text #1, and when the user presses the "anykey" we pop the stack and suddenly the View draws text #2. The Controller knows it's a dialogue mode and knows to pop the stack on the "anykey" press. Press enough keys, pop enough plates, we move through the storyline and get back to the game.
+
+## Implementing the state machine
+
+This section will go quick. I will summarize the changes and you can go look at the full code files by yourself. :]
+
+**[eventmanager.py](code-02/eventmanager.py) changes**
+
+We begin by adding a StateChangeEvent class. This gal will carry the signal around to push new states, or pop the current state.
+
+**[model.py](code-02/model.py) changes**
+
+We add the StateMachine class to the model, it is pretty basic and the code comments explains it all. We add a line in initialize:
+
+~~~python
+def __init__(self, evManager):
+    self.state = StateMachine()
+~~~
+
+In notify() we do a check if the event is a StateChangeEvent, and we manipulate the state accordingly:
+
+~~~python
+def notify(self, event):
+    if isinstance(event, StateChangeEvent):
+        # pop request
+        if not event.state:
+            # false if no more states are left
+            if not self.state.pop():
+                self.evManager.Post(QuitEvent())
+        else:
+            # push a new state on the stack
+            self.state.push(event.state)
+~~~
+
+Then in the run() call we push our first state on the stack, just before we start posting TickEvents.
+
+~~~python
+def run(self):
+    self.evManager.Post(InitializeEvent())
+    self.state.push(STATE_MENU)
+    while self.running:
+        newTick = TickEvent()
+        self.evManager.Post(newTick)
+~~~
+
+**[view.py](code-02/view.py) changes**
+
+Next we update our view to show a different message depending on what state the Model is in. I coded a render call for each state, it makes maintaining code easier to separate drawing calls like this. The hook of our change lies in notify():
+
+~~~python
+elif isinstance(event, TickEvent):
+    currentstate = self.model.state.peek()
+    if currentstate == model.STATE_MENU:
+        self.rendermenu()
+    if currentstate == model.STATE_PLAY:
+        self.renderplay()
+    if currentstate == model.STATE_HELP:
+        self.renderhelp()
+~~~
+
+**[controller.py](code-02/controller.py) changes**
+
+And finally we update our controller to handle keyboard input per state.
+
+* menu
+    * spacebar plays the game
+    * escape quits
+* play
+    * F1 shows help
+    * escape goes back to the menu
+    * any other key posts as InputEvent
+* help
+    * spacebar, escape or enter goes back to the game
+
+The hook for this change lies here:
+
+~~~python
+def notify(self, event):
+    if isinstance(event, TickEvent):
+        if event.type == pygame.KEYDOWN:
+            currentstate = self.model.state.peek()
+            if currentstate == model.STATE_MENU:
+                self.keydownmenu(event)
+            if currentstate == model.STATE_PLAY:
+                self.keydownplay(event)
+            if currentstate == model.STATE_HELP:
+                self.keydownhelp(event)
+~~~
+
+Notice how we fork out each model state key press to it's own call, this make for easy changes to each state.
+
+When you run this code, you will notice the game starts off in the menu. Spacebar takes you to the play state, where all other key presses get posted (as seen output in the terminal).
+
+    :$ python main.py
+    Initialize event
+    State change event pushed 5
+    Input event, char=Q, clickpos=None
+    Input event, char=W, clickpos=None
+    Input event, char=E, clickpos=None
+    Input event, char=R, clickpos=None
+    Input event, char=T, clickpos=None
+    Input event, char=Y, clickpos=None
+    State change event pushed 3
+    State change event popped
+    State change event popped
+    State change event popped
+    Quit event
+
+![go go state machine!](res/view-02.png)
 
 # Rendering the level
 

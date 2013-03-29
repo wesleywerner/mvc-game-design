@@ -4,14 +4,6 @@
 <li><a href="#table-of-contents">Table of contents</a></li>
 <li><a href="#the-purpose-of-this-document">The purpose of this document</a></li>
 <li><a href="#the-coupling">The coupling</a></li>
-<li><a href="#game-states">Game states</a><ul>
-<li><a href="#state-implementation">State implementation</a><ul>
-<li><a href="#what-is-a-state-machine">What is a state machine?</a></li>
-<li><a href="#why-would-we-do-this">Why would we do this?</a></li>
-</ul>
-</li>
-</ul>
-</li>
 <li><a href="#the-code">The Code</a><ul>
 <li><a href="#the-model">The Model</a></li>
 <li><a href="#the-view">The View</a></li>
@@ -21,7 +13,11 @@
 <li><a href="#run-the-code">Run the code</a></li>
 </ul>
 </li>
-<li><a href="#extending-the-game-state">Extending the game state</a></li>
+<li><a href="#game-states">Game states</a><ul>
+<li><a href="#the-state-machine">The state machine</a></li>
+<li><a href="#implementing-the-state-machine">Implementing the state machine</a></li>
+</ul>
+</li>
 <li><a href="#rendering-the-level">Rendering the level</a></li>
 <li><a href="#restructuring">Restructuring</a></li>
 <li><a href="#license">License</a></li>
@@ -82,87 +78,8 @@ implement other neat controllers like:</p>
 </ul>
 </li>
 </ul>
-<p>This shows that even if the Controller does not know anything about the player's
-health, what level we are on, it still only catches key presses and sends out
-events to match.</p>
-<p>Nor does the View care how the player is controlling our game. 
-The View only cares about showing on screen the current model state.
-Since the View also listens to posted events, it will pick up mouse clicks and
-key presses that integrate into it's widgets.</p>
-<h1 id="game-states">Game states</h1>
-<p>The model is host to multiple game states, like:</p>
-<ul>
-<li>playing<ul>
-<li>The game is in play.</li>
-<li>Controls react to the playtime context.</li>
-</ul>
-</li>
-<li>dialogue<ul>
-<li>The screen shows game storyline.</li>
-<li>The game is not running.</li>
-<li>Controls only respond to the dialog context.</li>
-</ul>
-</li>
-<li>menus<ul>
-<li>The user can select a profile to play or continue play.</li>
-<li>The user can select to view the settings or other pages.</li>
-<li>The game is not running. </li>
-<li>Controls only respond to the menu context.</li>
-</ul>
-</li>
-<li>settings<ul>
-<li>The user can toggle audio or music.</li>
-<li>The game is not running.</li>
-<li>Controls only respond to the settings context.</li>
-</ul>
-</li>
-<li>intro<ul>
-<li>Shows opening screen.</li>
-</ul>
-</li>
-<li>help<ul>
-<li>Display a game help overlay.</li>
-</ul>
-</li>
-</ul>
-<p>Since our View and Controller has strong links to the Model, both can look at
-the Model state, and decide what user keys to process, and what to draw.</p>
-<p>That is their domain, and their job.</p>
-<h2 id="state-implementation">State implementation</h2>
-<p>Using a state machine to track these game states allows us interesting tricks otherwise difficult to do.</p>
-<h3 id="what-is-a-state-machine">What is a state machine?</h3>
-<p>It is a fancy name for "a list of values, Last one In is First one Out." LIFO.</p>
-<p>Think of it like a stack of dinner plates.</p>
-<div class="codehilite"><pre>          ===     &lt;- we have a green plate on the table
-        #######   &lt;- our wooden breakfast table
-</pre></div>
-
-
-<p>You can peek() at what the topmost plate is, we see it is green, so we draw and react to events that mean "our game is busy playing". </p>
-<p>When we push() a red plate on top of the stack, we draw and do things that mean "the game is now paused". </p>
-<div class="codehilite"><pre>          ===     &lt;- we now see a red plate on top of the stack
-          ===     ... green plate
-        #######   ... table
-</pre></div>
-
-
-<p>To unpause, we simply pop() the top most plate off the stack, and we can now see the green plate again. Our game carries on playing.</p>
-<h3 id="why-would-we-do-this">Why would we do this?</h3>
-<p>Because this allows us to easily unwind the stack to escape from game menus, options, dialogue screens and so forth.</p>
-<p>All our View needs to do, is draw whatever the current stack item says.
-All our Controller needs to do, is handle input for the current stack item.</p>
-<p>We can use this to show game dialogue for more than one screen. Consider this:</p>
-<div class="codehilite"><pre>          ===     ... dialogue text #1
-          ===     ... dialogue text #2
-          ===     ... dialogue text #3
-          ===     ... green plate
-        #######   ... table
-</pre></div>
-
-
-<p>The View draws the dialogue text #1, and when the user presses the "anykey" we pop the stack and suddenly the View draws text #2. Neat. </p>
-<p>The Controller knows it's a dialogue mode and knows to pop the stack on the "anykey" press. </p>
-<p>Press enough keys, pop enough plates, we move through the storyline and get back to the game.</p>
+<p>This shows that even if the Controller does not know anything about the player's health, what level we are on, it still only catches key presses and sends out events to match.</p>
+<p>Nor does the View care how the player is controlling our game. The View only cares about showing on screen the current model state. Since the View also listens to posted events, it will pick up mouse clicks and key presses that integrate into it's widgets.</p>
 <h1 id="the-code">The Code</h1>
 <p>We will implement our pattern in <a href="#references">Python</a>. We will create the Model, the View and the Controller. We will also create the file that hosts instances of each and links them together.</p>
 <p>We will use the <a href="#references">PyGame</a> library for our View's graphics. The MVC design will allow us to replace PyGame with another graphics library if that is our wish. The game's behaviour will stay the same since the View does not control how the game runs, cutting out many potential bugs when implementing another View.</p>
@@ -482,7 +399,179 @@ Quit event
 
 <p><img alt="Our first view" src="res/view-01.png" /></p>
 <p>The term output shows the Initialize event was posted, that was when the View create it's window and started drawing itself on every TickEvent. Then some Input events fired while we press keys on the keyboard. Finally the Quit event fired when we pressed Escape.</p>
-<h1 id="extending-the-game-state">Extending the game state</h1>
+<h1 id="game-states">Game states</h1>
+<p>The Game Model needs to have multiple game states, like:</p>
+<ul>
+<li>playing<ul>
+<li>The game is in play.</li>
+<li>Controls react to the playtime context.</li>
+</ul>
+</li>
+<li>dialogue<ul>
+<li>The screen shows game storyline.</li>
+<li>The game is not running.</li>
+<li>Controls only respond to the dialog context.</li>
+</ul>
+</li>
+<li>menus<ul>
+<li>The user can select a profile to play or continue play.</li>
+<li>The user can select to view the settings or other pages.</li>
+<li>The game is not running. </li>
+<li>Controls only respond to the menu context.</li>
+</ul>
+</li>
+<li>settings<ul>
+<li>The user can toggle audio or music.</li>
+<li>The game is not running.</li>
+<li>Controls only respond to the settings context.</li>
+</ul>
+</li>
+<li>intro<ul>
+<li>Shows opening screen.</li>
+</ul>
+</li>
+<li>help<ul>
+<li>Display a game help overlay.</li>
+</ul>
+</li>
+</ul>
+<p>Since our View and Controller has strong links to the Model, both can look at
+the Model state, and decide what user keys to process, and what to draw.</p>
+<p>That is their domain, and their job.</p>
+<h2 id="the-state-machine">The state machine</h2>
+<p>We use a stack based state machine to track these game states.</p>
+<p><em>What is a state machine?</em></p>
+<p>It is a fancy name for "a list of values, Last one In, First one Out." LIFO.</p>
+<p>Think of it like a stack of dinner plates.</p>
+<div class="codehilite"><pre>          ===     &lt;- we have a green plate on the table
+        #######   &lt;- our wooden breakfast table
+</pre></div>
+
+
+<p>When we peek() at the top plate we see it is green, so we draw and react to events that mean "our game is busy playing".</p>
+<p>When we push() a red plate on top of the stack, we draw and do things that mean "the game is now paused". </p>
+<div class="codehilite"><pre>          ===     &lt;- we now see a red plate on top of the stack
+          ===     ... green plate
+        #######   ... table
+</pre></div>
+
+
+<p>To unpause we simply pop() the top most plate off the stack, and we can now see the green plate again. Our game carries on playing.</p>
+<p><strong>Why would we do this?</strong></p>
+<p>Because this allows us to easily unwind the stack to escape from game menus, options, dialogue screens and so forth. The player can open an arbitrary amount of menus, dialogues and screens, and it will unwind back to the beginning.</p>
+<p>All our View needs to do is draw whatever the current state is. All our Controller needs to do is handle input for the current state. </p>
+<p>We can use this to show game dialogue for more than one screen. Consider this:</p>
+<div class="codehilite"><pre>          ===     ... dialogue text #1
+          ===     ... dialogue text #2
+          ===     ... dialogue text #3
+          ===     ... game play
+          ===     ... main menu
+        #######   ...
+</pre></div>
+
+
+<p>The View draws the dialogue text #1, and when the user presses the "anykey" we pop the stack and suddenly the View draws text #2. The Controller knows it's a dialogue mode and knows to pop the stack on the "anykey" press. Press enough keys, pop enough plates, we move through the storyline and get back to the game.</p>
+<h2 id="implementing-the-state-machine">Implementing the state machine</h2>
+<p>This section will go quick. I will summarize the changes and you can go look at the full code files by yourself. :]</p>
+<p><strong><a href="code-02/eventmanager.py">eventmanager.py</a> changes</strong></p>
+<p>We begin by adding a StateChangeEvent class. This gal will carry the signal around to push new states, or pop the current state.</p>
+<p><strong><a href="code-02/model.py">model.py</a> changes</strong></p>
+<p>We add the StateMachine class to the model, it is pretty basic and the code comments explains it all. We add a line in initialize:</p>
+<div class="codehilite"><pre><span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evManager</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">StateMachine</span><span class="p">()</span>
+</pre></div>
+
+
+<p>In notify() we do a check if the event is a StateChangeEvent, and we manipulate the state accordingly:</p>
+<div class="codehilite"><pre><span class="k">def</span> <span class="nf">notify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">StateChangeEvent</span><span class="p">):</span>
+        <span class="c"># pop request</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">event</span><span class="o">.</span><span class="n">state</span><span class="p">:</span>
+            <span class="c"># false if no more states are left</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">pop</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">evManager</span><span class="o">.</span><span class="n">Post</span><span class="p">(</span><span class="n">QuitEvent</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c"># push a new state on the stack</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Then in the run() call we push our first state on the stack, just before we start posting TickEvents.</p>
+<div class="codehilite"><pre><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">evManager</span><span class="o">.</span><span class="n">Post</span><span class="p">(</span><span class="n">InitializeEvent</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">STATE_MENU</span><span class="p">)</span>
+    <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+        <span class="n">newTick</span> <span class="o">=</span> <span class="n">TickEvent</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evManager</span><span class="o">.</span><span class="n">Post</span><span class="p">(</span><span class="n">newTick</span><span class="p">)</span>
+</pre></div>
+
+
+<p><strong><a href="code-02/view.py">view.py</a> changes</strong></p>
+<p>Next we update our view to show a different message depending on what state the Model is in. I coded a render call for each state, it makes maintaining code easier to separate drawing calls like this. The hook of our change lies in notify():</p>
+<div class="codehilite"><pre><span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">TickEvent</span><span class="p">):</span>
+    <span class="n">currentstate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">peek</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">currentstate</span> <span class="o">==</span> <span class="n">model</span><span class="o">.</span><span class="n">STATE_MENU</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rendermenu</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">currentstate</span> <span class="o">==</span> <span class="n">model</span><span class="o">.</span><span class="n">STATE_PLAY</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renderplay</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">currentstate</span> <span class="o">==</span> <span class="n">model</span><span class="o">.</span><span class="n">STATE_HELP</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renderhelp</span><span class="p">()</span>
+</pre></div>
+
+
+<p><strong><a href="code-02/controller.py">controller.py</a> changes</strong></p>
+<p>And finally we update our controller to handle keyboard input per state.</p>
+<ul>
+<li>menu<ul>
+<li>spacebar plays the game</li>
+<li>escape quits</li>
+</ul>
+</li>
+<li>play<ul>
+<li>F1 shows help</li>
+<li>escape goes back to the menu</li>
+<li>any other key posts as InputEvent</li>
+</ul>
+</li>
+<li>help<ul>
+<li>spacebar, escape or enter goes back to the game</li>
+</ul>
+</li>
+</ul>
+<p>The hook for this change lies here:</p>
+<div class="codehilite"><pre><span class="k">def</span> <span class="nf">notify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">TickEvent</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">pygame</span><span class="o">.</span><span class="n">KEYDOWN</span><span class="p">:</span>
+            <span class="n">currentstate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">peek</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">currentstate</span> <span class="o">==</span> <span class="n">model</span><span class="o">.</span><span class="n">STATE_MENU</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">keydownmenu</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">currentstate</span> <span class="o">==</span> <span class="n">model</span><span class="o">.</span><span class="n">STATE_PLAY</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">keydownplay</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">currentstate</span> <span class="o">==</span> <span class="n">model</span><span class="o">.</span><span class="n">STATE_HELP</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">keydownhelp</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Notice how we fork out each model state key press to it's own call, this make for easy changes to each state.</p>
+<p>When you run this code, you will notice the game starts off in the menu. Spacebar takes you to the play state, where all other key presses get posted (as seen output in the terminal).</p>
+<div class="codehilite"><pre>:$ python main.py
+Initialize event
+State change event pushed 5
+Input event, char=Q, clickpos=None
+Input event, char=W, clickpos=None
+Input event, char=E, clickpos=None
+Input event, char=R, clickpos=None
+Input event, char=T, clickpos=None
+Input event, char=Y, clickpos=None
+State change event pushed 3
+State change event popped
+State change event popped
+State change event popped
+Quit event
+</pre></div>
+
+
+<p><img alt="go go state machine!" src="res/view-02.png" /></p>
 <h1 id="rendering-the-level">Rendering the level</h1>
 <p>We will use the Tiled map editor to create game levels, and the PyTMX library for reading the level files - See <a href="#references">References</a> below for links to these great pieces of code :]</p>
 <p>The best way to learn a library is to work through the included demo code.</p>

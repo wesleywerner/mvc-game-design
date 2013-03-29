@@ -17,6 +17,7 @@ class GameEngine(object):
         self.evManager = evManager
         evManager.RegisterListener(self)
         self.running = False
+        self.state = StateMachine()
 
     def notify(self, event):
         """
@@ -25,6 +26,15 @@ class GameEngine(object):
 
         if isinstance(event, QuitEvent):
             self.running = False
+        if isinstance(event, StateChangeEvent):
+            # pop request
+            if not event.state:
+                # false if no more states are left
+                if not self.state.pop():
+                    self.evManager.Post(QuitEvent())
+            else:
+                # push a new state on the stack
+                self.state.push(event.state)
 
     def run(self):
         """
@@ -35,6 +45,7 @@ class GameEngine(object):
         """
         self.running = True
         self.evManager.Post(InitializeEvent())
+        self.state.push(STATE_MENU)
         while self.running:
             newTick = TickEvent()
             self.evManager.Post(newTick)
@@ -46,7 +57,6 @@ STATE_MENU = 2
 STATE_HELP = 3
 STATE_ABOUT = 4
 STATE_PLAY = 5
-STATE_DIALOG = 6
 
 class StateMachine(object):
     """
@@ -76,6 +86,7 @@ class StateMachine(object):
         """
         try:
             self.statestack.pop()
+            return len(self.statestack) > 0
         except IndexError:
             # empty stack
             return None
