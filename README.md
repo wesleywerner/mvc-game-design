@@ -10,15 +10,9 @@ communicate between them, we make the code more maintainable and allow us to
 implement other neat controllers like:
 
 * a View for graphic on mobile devices.
-* a Controller for touch-screens.
+* a Controller for touch screens.
 
-_For more on MVC patters see References below_
-
-## Versions
-
-This document is a work in progress and incomplete.
-
-1. 2013/03: drafting
+_For more on this design pattern, see [references](#references)_
 
 # The coupling
 
@@ -139,10 +133,9 @@ Press enough keys, pop enough plates, we move through the storyline and get back
 
 # The Code
 
-Now we can implement our MVC pattern in [Python](http://python.org). We will create the Model, the View and the Controller.
-We will also create the file that hosts instances of each and links them together.
+We will implement our pattern in [Python](#references). We will create the Model, the View and the Controller. We will also create the file that hosts instances of each and links them together.
 
-We will use the [PyGame](http://pygame.org) library for our View's graphics. The whole MVC design will allow us to replace PyGame with another graphics library if that is our wish. The game's behaviour will stay the same since the View does not control how the game runs, cutting out many potential bugs when refactoring another View.
+We will use the [PyGame](#references) library for our View's graphics. The MVC design will allow us to replace PyGame with another graphics library if that is our wish. The game's behaviour will stay the same since the View does not control how the game runs, cutting out many potential bugs when implementing another View.
 
 _our coding style is taken from [PEP 8](#references). Read it. :)_
 
@@ -158,7 +151,7 @@ We will now create:
 
 Let's start with the brain of our game. Check this out:
 
-_Model.py_
+**Model.py**
 
 ~~~{.python}
 
@@ -210,9 +203,9 @@ You can see the Model takes an instance of Event Manager, this is so we can post
 
 ## The View
 
-Next up we code the View. First you will note it imports eventmanager, and the model. We call this a strong reference to the model, because we explicitly code against the model's properties. Because we are only a View, we should try and limit our selves to only read the model data, and avoid calling it's functions directly - of course nothing stops you from making direct calls, but the MVC pattern for a View hints to us that we only display the Model state.
+Next up we code the View. First you will note it imports eventmanager, and the model. We call this a strong reference to the model, because we explicitly code against the model's properties. Because we are only a View, we should try and limit our selves to only read the model data, and avoid calling it's functions directly. This ensures our View is not tightly coupled to the Model.
 
-_view.py_
+**view.py**
 
 ~~~{.python}
 
@@ -287,7 +280,7 @@ _view.py_
 
             result = pygame.init()
             pygame.font.init()
-            pygame.display.set_caption('MVC game')
+            pygame.display.set_caption('demo game')
             self.screen = pygame.display.set_mode((600, 60))
             self.clock = pygame.time.Clock()
             self.smallfont = pygame.font.Font(None, 40)
@@ -300,6 +293,8 @@ _view.py_
 Our controller is simple. It subscribes to the event manager notifications, and then for each TickEvent it will check if there are any key presses. It will post a QuitEvent message if the window is closed, or if the user presses the Escape key. Any other key presses are printed out for debugging.
 
 Notice the Controller also takes a reference to the Model. It's not used yet, but will be once our code grows.
+
+**controller.py**
 
 ~~~{.python}
 
@@ -345,9 +340,11 @@ Notice the Controller also takes a reference to the Model. It's not used yet, bu
 
 ## The Event Manager
 
-This class coordinates the messages sent between our MVC objects. Each event is a class that inherits from the Event base. Each event can also store additional data if it wishes. The event manager has methods to subscribe to receive messages through a notify(event) call.
+This class coordinates the messages sent between our objects. Each event is a class that inherits from the Event base. Each event can also store additional data if it wishes. The event manager has methods to subscribe to receive messages through a notify(event) call.
 
 _Note the class comments and spacing between classes as per [PEP 8](#references)._
+
+**eventmanager.py**
 
 ~~~{.python}
 
@@ -451,9 +448,9 @@ _Note the class comments and spacing between classes as per [PEP 8](#references)
 
 ## Binding it all together
 
-Now that we have our MVC classes coded, we can create the entry point which creates instances of our classes, binds them together and starts the main Model loop.
+Now that we have our classes coded, we can create the entry point which creates instances of our classes, binds them together and starts the main Model loop.
 
----
+**main.py**
 
 ~~~{.python}
 
@@ -477,7 +474,26 @@ if __name__ == '__main__':
 
 ~~~
 
----
+## Run the code
+
+The code for this demo lives in the [code-01](code-01/) directory. You run it through Python:
+
+    :$ python main.py 
+    Initialize event
+    Input event, char=Q, clickpos=None
+    Input event, char=W, clickpos=None
+    Input event, char=E, clickpos=None
+    Input event, char=R, clickpos=None
+    Input event, char=T, clickpos=None
+    Input event, char=Y, clickpos=None
+    Quit event
+
+![Our first view](res/view-01.png)
+
+The term output shows the Initialize event was posted, that was when the View create it's window and started drawing itself on every TickEvent. Then some Input events fired while we press keys on the keyboard. Finally the Quit event fired when we pressed Escape.
+
+# Extending the game state
+
 
 
 # Rendering the level
@@ -490,10 +506,6 @@ Read through the demo and mentally note the classes it uses. Then browse those
 class sources and go through their properties and functions. 
 
 This will take some time, but it is rewarding when you use the library someone else has worked on. We can only thank them for their hard work!
-
-## Where the rendering code lives
-
-In our MVC model, everything that involves drawing goes into the View.
 
 # Restructuring
 
@@ -526,7 +538,7 @@ Existing code files will be restructured.
 **OTHER**:
 
 * alive.py
-    * binds the mvc objects together
+    * binds the objects together
 * eventmanager.py
     * pygame provides an event manager but we implement our own so it is not coupled to pygame.
 * trace.py
@@ -554,11 +566,10 @@ You may contact me at [wez@[anti-spam]darknet.co.za](mailto:wez@[anti-spam]darkn
 
 # References
 
-* [http://www.python.org/dev/peps/pep-0008](http://www.python.org/dev/peps/pep-0008): PEP 8 -- Style Guide for Python Code
-
+* [http://python.org](http://python.org): The programming language.
+* [http://pygame.org](http://pygame.org): Pygame is a set of Python modules designed for writing games.
+* [http://www.python.org/dev/peps/pep-0008](http://www.python.org/dev/peps/pep-0008): PEP 8 Style Guide for Python Code
 * [http://mapeditor.org](http://mapeditor.org): A 2D tiled map editor.
-
 * [https://github.com/bitcraft/PyTMX](https://github.com/bitcraft/PyTMX): A python library for reading .tmx map files.
-
-* [http://ootips.org/mvc-pattern.html](http://ootips.org/mvc-pattern.html): A nice MVC paradigm. Here I replaced the weakly-typed references with our event manager.
+* [http://ootips.org/mvc-pattern.html](http://ootips.org/mvc-pattern.html): A nice MVC description. Here I replaced the weakly-typed references with our event manager.
 * [http://ezide.com/games/writing-games.html](http://ezide.com/games/writing-games.html): touches on a basic implementation which this document started from. It expands the model to include networking support, which I have omitted.

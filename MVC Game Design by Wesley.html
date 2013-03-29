@@ -1,0 +1,558 @@
+<link rel="stylesheet" type="text/css" href="res/style.css"><h1 id="table-of-contents">Table of contents</h1>
+<div class="toc">
+<ul>
+<li><a href="#table-of-contents">Table of contents</a></li>
+<li><a href="#the-purpose-of-this-document">The purpose of this document</a></li>
+<li><a href="#the-coupling">The coupling</a></li>
+<li><a href="#game-states">Game states</a><ul>
+<li><a href="#state-implementation">State implementation</a><ul>
+<li><a href="#what-is-a-state-machine">What is a state machine?</a></li>
+<li><a href="#why-would-we-do-this">Why would we do this?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#the-code">The Code</a><ul>
+<li><a href="#the-model">The Model</a></li>
+<li><a href="#the-view">The View</a></li>
+<li><a href="#the-controller">The Controller</a></li>
+<li><a href="#the-event-manager">The Event Manager</a></li>
+<li><a href="#binding-it-all-together">Binding it all together</a></li>
+<li><a href="#run-the-code">Run the code</a></li>
+</ul>
+</li>
+<li><a href="#extending-the-game-state">Extending the game state</a></li>
+<li><a href="#rendering-the-level">Rendering the level</a></li>
+<li><a href="#restructuring">Restructuring</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#contact">Contact</a></li>
+<li><a href="#references">References</a></li>
+</ul>
+</div>
+<h1 id="the-purpose-of-this-document">The purpose of this document</h1>
+<p>Implement the MVC design pattern for a 2D graphical RPG Roguelike game.
+By decoupling the view, controller and model and using an event manager to
+communicate between them, we make the code more maintainable and allow us to
+implement other neat controllers like:</p>
+<ul>
+<li>a View for graphic on mobile devices.</li>
+<li>a Controller for touch screens.</li>
+</ul>
+<p><em>For more on this design pattern, see <a href="#references">references</a></em></p>
+<h1 id="the-coupling">The coupling</h1>
+<p>Here we see how our our model pieces are connected:</p>
+<div class="codehilite"><pre>             +------------+
+             |    Model   |
+  &gt;----&gt;----&gt;+------------+&lt;----&lt;----&lt;
+  |          .            .          |
+  ^          .            .          ^
+  |          +------------+          |
+  ^          |   Events   |          ^
+  |          +------------+          |
+  ^          .            .          ^
+  |          .            .          |
+  ^          .            .          ^
+  +------------+        +------------+
+  |    View    |        | Controller |
+  +------------+        +------------+
+</pre></div>
+
+
+<ul>
+<li>Model<ul>
+<li>job: stores game map, player and npc data, game settings. Everything data.</li>
+<li>is not aware of what Views or Controllers are looking at it.</li>
+<li>can post and listen for events.</li>
+</ul>
+</li>
+<li>View<ul>
+<li>job: draws on screen what the model represents.</li>
+<li>is strongly aware of the model and it's values.</li>
+<li>can post and listen for events.</li>
+</ul>
+</li>
+<li>Controller<ul>
+<li>job: taking keyboard and mouse input and posts matching events.</li>
+<li>is strongly aware of the model and it's values.</li>
+<li>can post and listen for events.</li>
+</ul>
+</li>
+<li>Events<ul>
+<li>job: coordinates messages between listeners.</li>
+</ul>
+</li>
+</ul>
+<p>This shows that even if the Controller does not know anything about the player's
+health, what level we are on, it still only catches key presses and sends out
+events to match.</p>
+<p>Nor does the View care how the player is controlling our game. 
+The View only cares about showing on screen the current model state.
+Since the View also listens to posted events, it will pick up mouse clicks and
+key presses that integrate into it's widgets.</p>
+<h1 id="game-states">Game states</h1>
+<p>The model is host to multiple game states, like:</p>
+<ul>
+<li>playing<ul>
+<li>The game is in play.</li>
+<li>Controls react to the playtime context.</li>
+</ul>
+</li>
+<li>dialogue<ul>
+<li>The screen shows game storyline.</li>
+<li>The game is not running.</li>
+<li>Controls only respond to the dialog context.</li>
+</ul>
+</li>
+<li>menus<ul>
+<li>The user can select a profile to play or continue play.</li>
+<li>The user can select to view the settings or other pages.</li>
+<li>The game is not running. </li>
+<li>Controls only respond to the menu context.</li>
+</ul>
+</li>
+<li>settings<ul>
+<li>The user can toggle audio or music.</li>
+<li>The game is not running.</li>
+<li>Controls only respond to the settings context.</li>
+</ul>
+</li>
+<li>intro<ul>
+<li>Shows opening screen.</li>
+</ul>
+</li>
+<li>help<ul>
+<li>Display a game help overlay.</li>
+</ul>
+</li>
+</ul>
+<p>Since our View and Controller has strong links to the Model, both can look at
+the Model state, and decide what user keys to process, and what to draw.</p>
+<p>That is their domain, and their job.</p>
+<h2 id="state-implementation">State implementation</h2>
+<p>Using a state machine to track these game states allows us interesting tricks otherwise difficult to do.</p>
+<h3 id="what-is-a-state-machine">What is a state machine?</h3>
+<p>It is a fancy name for "a list of values, Last one In is First one Out." LIFO.</p>
+<p>Think of it like a stack of dinner plates.</p>
+<div class="codehilite"><pre>          ===     &lt;- we have a green plate on the table
+        #######   &lt;- our wooden breakfast table
+</pre></div>
+
+
+<p>You can peek() at what the topmost plate is, we see it is green, so we draw and react to events that mean "our game is busy playing". </p>
+<p>When we push() a red plate on top of the stack, we draw and do things that mean "the game is now paused". </p>
+<div class="codehilite"><pre>          ===     &lt;- we now see a red plate on top of the stack
+          ===     ... green plate
+        #######   ... table
+</pre></div>
+
+
+<p>To unpause, we simply pop() the top most plate off the stack, and we can now see the green plate again. Our game carries on playing.</p>
+<h3 id="why-would-we-do-this">Why would we do this?</h3>
+<p>Because this allows us to easily unwind the stack to escape from game menus, options, dialogue screens and so forth.</p>
+<p>All our View needs to do, is draw whatever the current stack item says.
+All our Controller needs to do, is handle input for the current stack item.</p>
+<p>We can use this to show game dialogue for more than one screen. Consider this:</p>
+<div class="codehilite"><pre>          ===     ... dialogue text #1
+          ===     ... dialogue text #2
+          ===     ... dialogue text #3
+          ===     ... green plate
+        #######   ... table
+</pre></div>
+
+
+<p>The View draws the dialogue text #1, and when the user presses the "anykey" we pop the stack and suddenly the View draws text #2. Neat. </p>
+<p>The Controller knows it's a dialogue mode and knows to pop the stack on the "anykey" press. </p>
+<p>Press enough keys, pop enough plates, we move through the storyline and get back to the game.</p>
+<h1 id="the-code">The Code</h1>
+<p>We will implement our pattern in <a href="#references">Python</a>. We will create the Model, the View and the Controller. We will also create the file that hosts instances of each and links them together.</p>
+<p>We will use the <a href="#references">PyGame</a> library for our View's graphics. The MVC design will allow us to replace PyGame with another graphics library if that is our wish. The game's behaviour will stay the same since the View does not control how the game runs, cutting out many potential bugs when implementing another View.</p>
+<p><em>our coding style is taken from <a href="#references">PEP 8</a>. Read it. :)</em></p>
+<p>We will now create:</p>
+<ul>
+<li>model.py, the brain.</li>
+<li>view.py, draws what the brain thinks.</li>
+<li>controller.py, tells the brain what to do.</li>
+<li>eventmanager.py, coordinates all our senses.</li>
+<li>main.py, glues all of the above into a running instance.</li>
+</ul>
+<h2 id="the-model">The Model</h2>
+<p>Let's start with the brain of our game. Check this out:</p>
+<p><strong>Model.py</strong></p>
+<div class="codehilite"><pre>    <span class="kn">import</span> <span class="nn">pygame</span>
+    <span class="kn">from</span> <span class="nn">eventmanager</span> <span class="kn">import</span> <span class="o">*</span>
+
+    <span class="k">class</span> <span class="nc">GameEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tracks the game state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evManager</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            evManager (EventManager): Allows posting messages to the event queue.</span>
+
+<span class="sd">            Attributes:</span>
+<span class="sd">            running (bool): True while the engine is online. Changed via QuitEvent().</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">evManager</span> <span class="o">=</span> <span class="n">evManager</span>
+            <span class="n">evManager</span><span class="o">.</span><span class="n">RegisterListener</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="bp">False</span>
+
+        <span class="k">def</span> <span class="nf">notify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Called by an event in the message queue. </span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">QuitEvent</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="bp">False</span>
+
+        <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Starts the game engine loop.</span>
+
+<span class="sd">            This pumps a Tick event into the message queue for each loop.</span>
+<span class="sd">            The loop ends when this object hears a QuitEvent in notify(). </span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">evManager</span><span class="o">.</span><span class="n">Post</span><span class="p">(</span><span class="n">InitializeEvent</span><span class="p">())</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+                <span class="n">newTick</span> <span class="o">=</span> <span class="n">TickEvent</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">evManager</span><span class="o">.</span><span class="n">Post</span><span class="p">(</span><span class="n">newTick</span><span class="p">)</span>
+</pre></div>
+
+
+<p>You can see the Model takes an instance of Event Manager, this is so we can post() messages from the Model. Any messages sent there are received into notify(), this includes messages posted by other instances. The run() method simply tells all other message listeners to get ready for action (InitializeEvent) and then starts posting TickEvents, forever, until it hears a QuitEvent through notify(). note how the Model imports eventmanager (line 1), but no View or Controller! The Model is blind to what is watching or controlling it, that is done all through the message pump.</p>
+<h2 id="the-view">The View</h2>
+<p>Next up we code the View. First you will note it imports eventmanager, and the model. We call this a strong reference to the model, because we explicitly code against the model's properties. Because we are only a View, we should try and limit our selves to only read the model data, and avoid calling it's functions directly. This ensures our View is not tightly coupled to the Model.</p>
+<p><strong>view.py</strong></p>
+<div class="codehilite"><pre>    <span class="kn">import</span> <span class="nn">pygame</span>
+    <span class="kn">import</span> <span class="nn">model</span>
+    <span class="kn">from</span> <span class="nn">eventmanager</span> <span class="kn">import</span> <span class="o">*</span>
+
+    <span class="k">class</span> <span class="nc">GraphicalView</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Draws the model state onto the screen.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evManager</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            evManager (EventManager): Allows posting messages to the event queue.</span>
+<span class="sd">            model (GameEngine): a strong reference to the game Model.</span>
+
+<span class="sd">            Attributes:</span>
+<span class="sd">            isinitialized (bool): pygame is ready to draw.</span>
+<span class="sd">            screen (pygame.Surface): the screen surface.</span>
+<span class="sd">            clock (pygame.time.Clock): keeps the fps constant.</span>
+<span class="sd">            smallfont (pygame.Font): a small font.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">evManager</span> <span class="o">=</span> <span class="n">evManager</span>
+            <span class="n">evManager</span><span class="o">.</span><span class="n">RegisterListener</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">isinitialized</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">screen</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">smallfont</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="k">def</span> <span class="nf">notify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Receive events posted to the message queue. </span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">InitializeEvent</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">QuitEvent</span><span class="p">):</span>
+                <span class="c"># shut down the pygame graphics</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">isinitialized</span> <span class="o">=</span> <span class="bp">False</span>
+                <span class="n">pygame</span><span class="o">.</span><span class="n">quit</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">TickEvent</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">renderall</span><span class="p">()</span>
+                <span class="c"># limit the redraw speed to 30 frames per second</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">clock</span><span class="o">.</span><span class="n">tick</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">renderall</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Draw the current game state on screen.</span>
+<span class="sd">            Does nothing if isinitialized == False (pygame.init failed)</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">isinitialized</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="c"># clear display</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">fill</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="c"># draw some words on the screen</span>
+            <span class="n">somewords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">smallfont</span><span class="o">.</span><span class="n">render</span><span class="p">(</span>
+                        <span class="s">&#39;The View is busy drawing on your screen&#39;</span><span class="p">,</span> 
+                        <span class="bp">True</span><span class="p">,</span> 
+                        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">blit</span><span class="p">(</span><span class="n">somewords</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="c"># flip the display to show whatever we drew</span>
+            <span class="n">pygame</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">flip</span><span class="p">()</span>
+
+        <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Set up the pygame graphical display and loads graphical resources.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="n">result</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+            <span class="n">pygame</span><span class="o">.</span><span class="n">font</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+            <span class="n">pygame</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">set_caption</span><span class="p">(</span><span class="s">&#39;demo game&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">screen</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">set_mode</span><span class="p">((</span><span class="mi">600</span><span class="p">,</span> <span class="mi">60</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">Clock</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">smallfont</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">font</span><span class="o">.</span><span class="n">Font</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">isinitialized</span> <span class="o">=</span> <span class="bp">True</span>
+</pre></div>
+
+
+<h2 id="the-controller">The Controller</h2>
+<p>Our controller is simple. It subscribes to the event manager notifications, and then for each TickEvent it will check if there are any key presses. It will post a QuitEvent message if the window is closed, or if the user presses the Escape key. Any other key presses are printed out for debugging.</p>
+<p>Notice the Controller also takes a reference to the Model. It's not used yet, but will be once our code grows.</p>
+<p><strong>controller.py</strong></p>
+<div class="codehilite"><pre>    <span class="kn">import</span> <span class="nn">pygame</span>
+    <span class="kn">import</span> <span class="nn">model</span>
+    <span class="kn">from</span> <span class="nn">eventmanager</span> <span class="kn">import</span> <span class="o">*</span>
+
+    <span class="k">class</span> <span class="nc">Keyboard</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Handles keyboard input.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evManager</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            evManager (EventManager): Allows posting messages to the event queue.</span>
+<span class="sd">            model (GameEngine): a strong reference to the game Model.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">evManager</span> <span class="o">=</span> <span class="n">evManager</span>
+            <span class="n">evManager</span><span class="o">.</span><span class="n">RegisterListener</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+
+        <span class="k">def</span> <span class="nf">notify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Receive events posted to the message queue. </span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">TickEvent</span><span class="p">):</span>
+                <span class="c"># Called for each game tick. We check our keyboard presses here.</span>
+                <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">pygame</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
+                    <span class="c"># handle window manager closing our window</span>
+                    <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">pygame</span><span class="o">.</span><span class="n">QUIT</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">evManager</span><span class="o">.</span><span class="n">Post</span><span class="p">(</span><span class="n">QuitEvent</span><span class="p">())</span>
+                    <span class="c"># handle key down events</span>
+                    <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">pygame</span><span class="o">.</span><span class="n">KEYDOWN</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="n">pygame</span><span class="o">.</span><span class="n">K_ESCAPE</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">evManager</span><span class="o">.</span><span class="n">Post</span><span class="p">(</span><span class="n">QuitEvent</span><span class="p">())</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c"># post any other keys to the message queue for everyone else to see</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">evManager</span><span class="o">.</span><span class="n">Post</span><span class="p">(</span><span class="n">InputEvent</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">unicode</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+</pre></div>
+
+
+<h2 id="the-event-manager">The Event Manager</h2>
+<p>This class coordinates the messages sent between our objects. Each event is a class that inherits from the Event base. Each event can also store additional data if it wishes. The event manager has methods to subscribe to receive messages through a notify(event) call.</p>
+<p><em>Note the class comments and spacing between classes as per <a href="#references">PEP 8</a>.</em></p>
+<p><strong>eventmanager.py</strong></p>
+<div class="codehilite"><pre>    <span class="k">class</span> <span class="nc">Event</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A superclass for any events that might be generated by an</span>
+<span class="sd">        object and sent to the EventManager.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;Generic event&quot;</span>
+        <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">class</span> <span class="nc">QuitEvent</span><span class="p">(</span><span class="n">Event</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quit event.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span> <span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;Quit event&quot;</span>
+
+    <span class="k">class</span> <span class="nc">TickEvent</span><span class="p">(</span><span class="n">Event</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tick event.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span> <span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;Tick event&quot;</span>
+
+    <span class="k">class</span> <span class="nc">InputEvent</span><span class="p">(</span><span class="n">Event</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Keyboard or mouse input event.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unicodechar</span><span class="p">,</span> <span class="n">clickpos</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;Input event&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">char</span> <span class="o">=</span> <span class="n">unicodechar</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clickpos</span> <span class="o">=</span> <span class="n">clickpos</span>
+        <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">, char=</span><span class="si">%s</span><span class="s">, clickpos=</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">char</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clickpos</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">InitializeEvent</span><span class="p">(</span><span class="n">Event</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tells all listeners to initialize themselves.</span>
+<span class="sd">        This includes loading libraries and resources.</span>
+
+<span class="sd">        Avoid initializing such things within listener __init__ calls </span>
+<span class="sd">        to minimize snafus (if some rely on others being yet created.)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span> <span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;Initialize event&quot;</span>
+
+    <span class="k">class</span> <span class="nc">EventManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        We coordinate communication between the Model, View, and Controller.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="kn">from</span> <span class="nn">weakref</span> <span class="kn">import</span> <span class="n">WeakKeyDictionary</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">listeners</span> <span class="o">=</span> <span class="n">WeakKeyDictionary</span><span class="p">()</span>
+
+        <span class="k">def</span> <span class="nf">RegisterListener</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">listener</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">            Adds a listener to our spam list. </span>
+<span class="sd">            It will receive Post()ed events through it&#39;s notify(event) call. </span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">listeners</span><span class="p">[</span><span class="n">listener</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">def</span> <span class="nf">UnregisterListener</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">listener</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">            Remove a listener from our spam list.</span>
+<span class="sd">            This is implemented but hardly used.</span>
+<span class="sd">            Our weak ref spam list will auto remove any listeners who stop existing.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="n">listener</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">listeners</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">listeners</span><span class="p">[</span><span class="n">listener</span><span class="p">]</span>
+
+        <span class="k">def</span> <span class="nf">Post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Post a new event to the message queue.</span>
+<span class="sd">            It will be broadcast to all listeners.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">TickEvent</span><span class="p">):</span>
+                <span class="c"># print the event (unless it is TickEvent)</span>
+                <span class="k">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">event</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">listener</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">listeners</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">listener</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+</pre></div>
+
+
+<h2 id="binding-it-all-together">Binding it all together</h2>
+<p>Now that we have our classes coded, we can create the entry point which creates instances of our classes, binds them together and starts the main Model loop.</p>
+<p><strong>main.py</strong></p>
+<div class="codehilite"><pre><span class="kn">import</span> <span class="nn">eventmanager</span>
+<span class="kn">import</span> <span class="nn">model</span>
+<span class="kn">import</span> <span class="nn">view</span>
+<span class="kn">import</span> <span class="nn">controller</span>
+
+<span class="k">def</span> <span class="nf">run</span><span class="p">():</span>
+    <span class="n">evManager</span> <span class="o">=</span> <span class="n">eventmanager</span><span class="o">.</span><span class="n">EventManager</span><span class="p">()</span>
+    <span class="n">gamemodel</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">GameEngine</span><span class="p">(</span><span class="n">evManager</span><span class="p">)</span>
+    <span class="n">keyboard</span> <span class="o">=</span> <span class="n">controller</span><span class="o">.</span><span class="n">Keyboard</span><span class="p">(</span><span class="n">evManager</span><span class="p">,</span> <span class="n">gamemodel</span><span class="p">)</span>
+    <span class="n">graphics</span> <span class="o">=</span> <span class="n">view</span><span class="o">.</span><span class="n">GraphicalView</span><span class="p">(</span><span class="n">evManager</span><span class="p">,</span> <span class="n">gamemodel</span><span class="p">)</span>
+    <span class="n">evManager</span><span class="o">.</span><span class="n">RegisterListener</span><span class="p">(</span><span class="n">gamemodel</span><span class="p">)</span>
+    <span class="n">evManager</span><span class="o">.</span><span class="n">RegisterListener</span><span class="p">(</span><span class="n">keyboard</span><span class="p">)</span>
+    <span class="n">evManager</span><span class="o">.</span><span class="n">RegisterListener</span><span class="p">(</span><span class="n">graphics</span><span class="p">)</span>
+    <span class="n">gamemodel</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">run</span><span class="p">()</span>
+</pre></div>
+
+
+<h2 id="run-the-code">Run the code</h2>
+<p>The code for this demo lives in the <a href="code-01/">code-01</a> directory. You run it through Python:</p>
+<div class="codehilite"><pre>:$ python main.py 
+Initialize event
+Input event, char=Q, clickpos=None
+Input event, char=W, clickpos=None
+Input event, char=E, clickpos=None
+Input event, char=R, clickpos=None
+Input event, char=T, clickpos=None
+Input event, char=Y, clickpos=None
+Quit event
+</pre></div>
+
+
+<p><img alt="Our first view" src="res/view-01.png" /></p>
+<p>The term output shows the Initialize event was posted, that was when the View create it's window and started drawing itself on every TickEvent. Then some Input events fired while we press keys on the keyboard. Finally the Quit event fired when we pressed Escape.</p>
+<h1 id="extending-the-game-state">Extending the game state</h1>
+<h1 id="rendering-the-level">Rendering the level</h1>
+<p>We will use the Tiled map editor to create game levels, and the PyTMX library for reading the level files - See <a href="#references">References</a> below for links to these great pieces of code :]</p>
+<p>The best way to learn a library is to work through the included demo code.</p>
+<p>Read through the demo and mentally note the classes it uses. Then browse those
+class sources and go through their properties and functions. </p>
+<p>This will take some time, but it is rewarding when you use the library someone else has worked on. We can only thank them for their hard work!</p>
+<h1 id="restructuring">Restructuring</h1>
+<p>Existing code files will be restructured.
+(<em>slanted files await refactoring</em>)</p>
+<p><strong>MODEL</strong>: aliveModel.py</p>
+<ul>
+<li><em>game.py</em></li>
+<li><em>character.py</em></li>
+<li><em>objects.py</em></li>
+<li>states.py</li>
+<li><em>stats.py</em></li>
+<li><em>combat.py</em></li>
+<li><em>bump.py</em></li>
+<li><em>level.py</em></li>
+<li><em>messages.py</em></li>
+</ul>
+<p><strong>VIEW</strong>: aliveView.py</p>
+<ul>
+<li>resources.py</li>
+<li><em>ui.py</em></li>
+<li><em>helper.py</em></li>
+<li><em>audio.py</em></li>
+</ul>
+<p><strong>CONTROLLER</strong>: aliveController.py</p>
+<ul>
+<li>input.py</li>
+</ul>
+<p><strong>OTHER</strong>:</p>
+<ul>
+<li>alive.py<ul>
+<li>binds the objects together</li>
+</ul>
+</li>
+<li>eventmanager.py<ul>
+<li>pygame provides an event manager but we implement our own so it is not coupled to pygame.</li>
+</ul>
+</li>
+<li>trace.py</li>
+<li>color.py</li>
+</ul>
+<h1 id="license">License</h1>
+<div class="codehilite"><pre>Copyright (C) 2013 Wesley Werner
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+</pre></div>
+
+
+<p>You should receive a copy of the GNU General Public License along with this program. If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p>
+<h1 id="contact">Contact</h1>
+<p>You may contact me at <a href="mailto:wez@[anti-spam]darknet.co.za">wez@[anti-spam]darknet.co.za</a></p>
+<h1 id="references">References</h1>
+<ul>
+<li><a href="http://python.org">http://python.org</a>: The programming language.</li>
+<li><a href="http://pygame.org">http://pygame.org</a>: Pygame is a set of Python modules designed for writing games.</li>
+<li><a href="http://www.python.org/dev/peps/pep-0008">http://www.python.org/dev/peps/pep-0008</a>: PEP 8 Style Guide for Python Code</li>
+<li><a href="http://mapeditor.org">http://mapeditor.org</a>: A 2D tiled map editor.</li>
+<li><a href="https://github.com/bitcraft/PyTMX">https://github.com/bitcraft/PyTMX</a>: A python library for reading .tmx map files.</li>
+<li><a href="http://ootips.org/mvc-pattern.html">http://ootips.org/mvc-pattern.html</a>: A nice MVC description. Here I replaced the weakly-typed references with our event manager.</li>
+<li><a href="http://ezide.com/games/writing-games.html">http://ezide.com/games/writing-games.html</a>: touches on a basic implementation which this document started from. It expands the model to include networking support, which I have omitted.</li>
+</ul>
