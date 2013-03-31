@@ -616,7 +616,7 @@ You should receive a copy of the GNU General Public License along with this prog
 
 # Contact
 
-You may contact me at [wez@[anti-spam]darknet.co.za](mailto:wez@[anti-spam]darknet.co.za)
+You may contact me at: [wez at darknet dot co dot za](mailto:wez[at-antispam]darknet.co.za)
 
 # References
 
