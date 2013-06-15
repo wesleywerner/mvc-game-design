@@ -10,6 +10,12 @@ By decoupling the View, the Controller and the Model, and using an event manager
 
 _For more on this design pattern, see [references](#references)_
 
+# Code examples
+
+Included are the code samples for the classes below. There is also a samegame that you can play.
+
+The samegame uses a reduced implementation of the pattern: there is no dedicated event manager class. Instead it shows how you can register listeners on the model that will be called at certain events. This method is not as flexible as discussed below, yet shows you how you to implement this model in another way.
+
 # The coupling
 
 Here we see how our our model pieces are connected:
