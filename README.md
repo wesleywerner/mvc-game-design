@@ -629,7 +629,7 @@ You may contact me at: [wez at darknet dot co dot za](mailto:wez[at-antispam]dar
 # References
 
 * [http://python.org](http://python.org): The programming language.
-* [http://pygame.org](http://pygame.org): Pygame is a set of Python modules designed for writing games.
+* [http://pygame.org](http://pygame.org): SDL bindings for games development in Python.
 * [http://www.python.org/dev/peps/pep-0008](http://www.python.org/dev/peps/pep-0008): PEP 8 Style Guide for Python Code
 * [http://mapeditor.org](http://mapeditor.org): A 2D tiled map editor.
 * [https://github.com/bitcraft/PyTMX](https://github.com/bitcraft/PyTMX): A python library for reading .tmx map files.
