@@ -1,0 +1,42 @@
+Separate the tutorial into individual articles, using README as the introduction and table of contents.
+
+Possible sections:
+
+* Understanding the separation of the layers.
+
+    This article explains what each mvc component's responsibilies are, and how they are allowed to interact with each other.
+
+* Passing data using an event-like message system.
+
+    This article explains how to pass information around within your game using a simple event based system. This method has the benefit of decoupling the various parts of your design, allowing you to get the information you need without getting tangled code.
+
+* Managing menus and different game states.
+
+    This article explains how you manage various game states that determine what input and drawing happens at certain times, how your mvc components know to behave during each of these states, and how to unwind these states to escape back from an arbitrary depth of menus and game screens. These states include menus, game playing and pausing states, high score screens, game dialogue states, and anything that changes the behaviour of your game and how the user interacts with it.
+
+* Interpolating graphical elements against a rigid model body.
+
+    This article explains how one can achieve smooth graphical movements even when your model updates with rigid jumps.
+    
+    For example: the model of a blackjack card game will update to indicate the player is dealt a new card, landed on 21 or bust. The view represents this with smooth animations of cards being thrown onto and off the table, and showing win and lose messages fluidly.
+    
+* Drawing made easier with decentralized origin containers.
+
+    This article explains how to avoid code spaghetti by sectioning the screen into panelled areas. Every game has a different layout, areas dedicated to HUD displays, status bars, inventory items and the actual gameplay area. If you try to draw all these elements on the same canvas you need to keep track of their relative positions and sizes to ensure they get drawn where you want them, and this means saving offsets and doing a lot of menial tweaking.
+    
+    We overcome this by drawing each section in it's own dedicated panel, each has it's own zeroed (0, 0) origin coordinate and you don't have to worry about offsets when drawing any particular panel's contents.
+    
+    This gives us some very cool functionality for free: sliding panels around for effect, and automatically rescaling panel contents when resized. One particularly awesome trick is hooking panel visibility into the game states via the event manager, allowing us to show and hide them as game states change.
+    
+* 360-degrees angular movement
+
+    This article explains how you can use trigonometry to turn a character around an axis. It then expands on this by finding out the direction your character is pointing, and by applying forward movement to that direction. This is how you control a vehicle in a top-down view, or an aeroplane in a side view.
+    
+    This is an elementary implementation that does not rely on using a physics engine library.
+    
+* Gravity and friction
+
+    This article explains how to apply gravity and friction to your moving character models.
+    
+    This is an elementary implementation that does not rely on using a physics engine library.
+    
