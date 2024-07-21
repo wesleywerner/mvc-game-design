@@ -14,9 +14,7 @@
 #  MA 02110-1301, USA.
 
 import pygame
-from pygame.locals import *
-from same_model import Same_M
-from same_view import Same_V
+import pygame.locals as pgloc
 
 
 class Same_C(object):
@@ -29,10 +27,10 @@ class Same_C(object):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-            elif event.type == KEYDOWN:
-                if event.key == K_ESCAPE:
+            elif event.type == pgloc.KEYDOWN:
+                if event.key == pgloc.K_ESCAPE:
                     self.running = False
-            elif event.type == MOUSEBUTTONDOWN:
+            elif event.type == pgloc.MOUSEBUTTONDOWN:
                 if event.button:
                     row, col = self.view.convert_mousepos(event.pos)
                     if self.view.selection:

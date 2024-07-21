@@ -1,37 +1,39 @@
-import pygame
-import model
-from eventmanager import *
+"""
+Controller
+"""
 
-class Keyboard(object):
+import pygame
+import eventmanager as evmgr
+
+class Keyboard:
     """
     Handles keyboard input.
     """
 
-    def __init__(self, evManager, model):
+    def __init__(self, ev_manager, model):
         """
-        evManager (EventManager): Allows posting messages to the event queue.
+        ev_manager (EventManager): Allows posting messages to the event queue.
         model (GameEngine): a strong reference to the game Model.
         """
-        self.evManager = evManager
-        evManager.RegisterListener(self)
+        self.ev_manager = ev_manager
+        ev_manager.register_listener(self)
         self.model = model
 
     def notify(self, event):
         """
-        Receive events posted to the message queue. 
+        Receive events posted to the message queue.
         """
 
-        if isinstance(event, TickEvent):
+        if isinstance(event, evmgr.TickEvent):
             # Called for each game tick. We check our keyboard presses here.
-            for event in pygame.event.get():
+            for ev in pygame.event.get():
                 # handle window manager closing our window
-                if event.type == pygame.QUIT:
-                    self.evManager.Post(QuitEvent())
-                # handle key down events
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        self.evManager.Post(QuitEvent())
+                if ev.type == pygame.QUIT:
+                    self.ev_manager.post(evmgr.QuitEvent())
+                # handle key down evs
+                if ev.type == pygame.KEYDOWN:
+                    if ev.key == pygame.K_ESCAPE:
+                        self.ev_manager.post(evmgr.QuitEvent())
                     else:
                         # post any other keys to the message queue for everyone else to see
-                        self.evManager.Post(InputEvent(event.unicode, None))
-
+                        self.ev_manager.post(evmgr.InputEvent(ev.unicode, None))

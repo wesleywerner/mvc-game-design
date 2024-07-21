@@ -1,29 +1,31 @@
-import pygame
-from eventmanager import *
+"""
+Model
+"""
+import eventmanager as evmgr
 
-class GameEngine(object):
+class GameEngine:
     """
     Tracks the game state.
     """
 
-    def __init__(self, evManager):
+    def __init__(self, ev_manager):
         """
-        evManager (EventManager): Allows posting messages to the event queue.
-        
+        ev_manager(EventManager): Allows posting messages to the event queue.
+
         Attributes:
         running (bool): True while the engine is online. Changed via QuitEvent().
         """
-        
-        self.evManager = evManager
-        evManager.RegisterListener(self)
+
+        self.ev_manager = ev_manager
+        ev_manager.register_listener(self)
         self.running = False
 
     def notify(self, event):
         """
-        Called by an event in the message queue. 
+        Called by an event in the message queue.
         """
 
-        if isinstance(event, QuitEvent):
+        if isinstance(event, evmgr.QuitEvent):
             self.running = False
 
     def run(self):
@@ -31,10 +33,10 @@ class GameEngine(object):
         Starts the game engine loop.
 
         This pumps a Tick event into the message queue for each loop.
-        The loop ends when this object hears a QuitEvent in notify(). 
+        The loop ends when this object hears a QuitEvent in notify().
         """
         self.running = True
-        self.evManager.Post(InitializeEvent())
+        self.ev_manager.post(evmgr.InitializeEvent())
         while self.running:
-            newTick = TickEvent()
-            self.evManager.Post(newTick)
+            new_tick = evmgr.TickEvent()
+            self.ev_manager.post(new_tick)
