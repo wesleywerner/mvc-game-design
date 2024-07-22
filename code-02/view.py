@@ -7,9 +7,9 @@ class GraphicalView(object):
     Draws the model state onto the screen.
     """
 
-    def __init__(self, evManager, model):
+    def __init__(self, ev_manager, model):
         """
-        evManager (EventManager): Allows posting messages to the event queue.
+        ev_manager (EventManager): Allows posting messages to the event queue.
         model (GameEngine): a strong reference to the game Model.
 
         Attributes:
@@ -19,8 +19,8 @@ class GraphicalView(object):
         smallfont (pygame.Font): a small font.
         """
 
-        self.evManager = evManager
-        evManager.RegisterListener(self)
+        self.ev_manager = ev_manager
+        ev_manager.register_listener(self)
         self.model = model
         self.isinitialized = False
         self.screen = None
