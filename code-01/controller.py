@@ -30,10 +30,16 @@ class Keyboard:
                 # handle window manager closing our window
                 if ev.type == pygame.QUIT:
                     self.ev_manager.post(evmgr.QuitEvent())
+                    # The GraphicalView calls pygame.quit() upon
+                    # receiving the QuitEvent. We shouldn't return to
+                    # the top of the loop here. `pygame.event` might be
+                    # undefined.
+                    break
                 # handle key down evs
                 if ev.type == pygame.KEYDOWN:
                     if ev.key == pygame.K_ESCAPE:
                         self.ev_manager.post(evmgr.QuitEvent())
+                        break
                     else:
                         # post any other keys to the message queue for everyone else to see
                         self.ev_manager.post(evmgr.InputEvent(ev.unicode, None))

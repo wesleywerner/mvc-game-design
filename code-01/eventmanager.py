@@ -2,7 +2,7 @@
 Event Manager
 """
 
-from weakref import WeakKeyDictionary
+from weakref import WeakSet
 
 class Event:
     """
@@ -70,7 +70,7 @@ class EventManager:
     """
 
     def __init__(self):
-        self.listeners = WeakKeyDictionary()
+        self.listeners = WeakSet()
 
     def register_listener(self, listener):
         """
@@ -78,7 +78,7 @@ class EventManager:
         It will receive Post()ed events through it's notify(event) call.
         """
 
-        self.listeners[listener] = 1
+        self.listeners.add(listener)
 
     def unregister_listener(self, listener):
         """
@@ -87,8 +87,7 @@ class EventManager:
         Our weak ref spam list will auto remove any listeners who stop existing.
         """
 
-        if listener in self.listeners.keys():
-            del self.listeners[listener]
+        self.listeners.discard(listener)
 
     def post(self, event):
         """
@@ -99,5 +98,5 @@ class EventManager:
         if not isinstance(event, TickEvent):
             # print the event (unless it is TickEvent)
             print(str(event))
-        for listener in self.listeners.keys():
+        for listener in self.listeners:
             listener.notify(event)
