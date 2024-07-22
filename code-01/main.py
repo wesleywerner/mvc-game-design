@@ -1,13 +1,20 @@
+"""
+Main
+"""
+
 import eventmanager
 import model
 import view
 import controller
 
 def run():
-    evManager = eventmanager.EventManager()
-    gamemodel = model.GameEngine(evManager)
-    keyboard = controller.Keyboard(evManager, gamemodel)
-    graphics = view.GraphicalView(evManager, gamemodel)
+    """
+    Run the program
+    """
+    ev_manager = eventmanager.EventManager()
+    gamemodel = model.GameEngine(ev_manager)
+    keyboard = controller.Keyboard(ev_manager, gamemodel)
+    graphics = view.GraphicalView(ev_manager, gamemodel)
     gamemodel.run()
 
 if __name__ == '__main__':

@@ -1,5 +1,4 @@
-import pygame
-from eventmanager import *
+import eventmanager as evmgr
 
 class GameEngine(object):
     """
@@ -9,11 +8,11 @@ class GameEngine(object):
     def __init__(self, evManager):
         """
         evManager (EventManager): Allows posting messages to the event queue.
-        
+
         Attributes:
         running (bool): True while the engine is online. Changed via QuitEvent().
         """
-        
+
         self.evManager = evManager
         evManager.RegisterListener(self)
         self.running = False
@@ -21,17 +20,17 @@ class GameEngine(object):
 
     def notify(self, event):
         """
-        Called by an event in the message queue. 
+        Called by an event in the message queue.
         """
 
-        if isinstance(event, QuitEvent):
+        if isinstance(event, evmgr.QuitEvent):
             self.running = False
-        if isinstance(event, StateChangeEvent):
+        if isinstance(event, evmgr.StateChangeEvent):
             # pop request
             if not event.state:
                 # false if no more states are left
                 if not self.state.pop():
-                    self.evManager.Post(QuitEvent())
+                    self.evManager.Post(evmgr.QuitEvent())
             else:
                 # push a new state on the stack
                 self.state.push(event.state)
@@ -41,13 +40,13 @@ class GameEngine(object):
         Starts the game engine loop.
 
         This pumps a Tick event into the message queue for each loop.
-        The loop ends when this object hears a QuitEvent in notify(). 
+        The loop ends when this object hears a QuitEvent in notify().
         """
         self.running = True
-        self.evManager.Post(InitializeEvent())
+        self.evManager.Post(evmgr.InitializeEvent())
         self.state.push(STATE_MENU)
         while self.running:
-            newTick = TickEvent()
+            newTick = evmgr.TickEvent()
             self.evManager.Post(newTick)
 
 
@@ -64,10 +63,10 @@ class StateMachine(object):
     peek(), pop() and push() perform as traditionally expected.
     peeking and popping an empty stack returns None.
     """
-    
+
     def __init__ (self):
         self.statestack = []
-    
+
     def peek(self):
         """
         Returns the current state without altering the stack.
@@ -78,7 +77,7 @@ class StateMachine(object):
         except IndexError:
             # empty stack
             return None
-    
+
     def pop(self):
         """
         Returns the current state and remove it from the stack.
@@ -90,7 +89,7 @@ class StateMachine(object):
         except IndexError:
             # empty stack
             return None
-    
+
     def push(self, state):
         """
         Push a new state onto the stack.

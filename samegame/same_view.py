@@ -12,9 +12,11 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
-
+"""
+This is the Same Game View Class
+"""
 import pygame
-from pygame.locals import *
+import pygame.locals as pgloc
 from same_model import Same_M
 
 FRAMERATE = 60
@@ -32,7 +34,7 @@ BG_COLOR = BLACK
 SELECTION_COLOR = WHITE
 
 
-class Same_V(object):
+class Same_V:
     def __init__(self, pixel_width, pixel_height, model):
 
         # we may observe the model
@@ -43,7 +45,7 @@ class Same_V(object):
 
         # calculate each block size, and set our viewport size.
         self.screen_size = pixel_width, pixel_height
-        self.block_size = pixel_width / model.cols
+        self.block_size = pixel_width // model.cols
 
         # keep a matrix of selected blocks
         self.selection = None
@@ -96,7 +98,7 @@ class Same_V(object):
 
     def convert_mousepos(self, pos):
         """ convert window (x, y) coords into game field (row, col) values. """
-        return pos[1] / self.block_size, pos[0] / self.block_size
+        return pos[1] // self.block_size, pos[0] // self.block_size
 
     def redraw(self):
         self.__draw_blocks()
@@ -119,19 +121,19 @@ class Same_V(object):
             self.blit()
 
 if __name__ == "__main__":
-    model = Same_M(8, 8, [1, 2, 3], 1)
-    view = Same_V(300, 300, model)
+    test_model = Same_M(8, 8, [1, 2, 3], 1)
+    view = Same_V(300, 300, test_model)
     view.redraw()
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == KEYDOWN:
-                if event.key == K_ESCAPE:
+            elif event.type == pgloc.KEYDOWN:
+                if event.key == pgloc.K_ESCAPE:
                     running = False
-            elif event.type == MOUSEBUTTONDOWN:
+            elif event.type == pgloc.MOUSEBUTTONDOWN:
                 row, col = view.convert_mousepos(event.pos)
-                view.selection = model.get_neighbours(row, col)
+                view.selection = test_model.get_neighbours(row, col)
                 view.redraw()
         view.blit()

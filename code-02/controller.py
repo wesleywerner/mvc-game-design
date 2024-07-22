@@ -1,6 +1,6 @@
 import pygame
 import model
-from eventmanager import *
+import eventmanager as evmgr
 
 class Keyboard(object):
     """
@@ -18,19 +18,19 @@ class Keyboard(object):
 
     def notify(self, event):
         """
-        Receive events posted to the message queue. 
+        Receive events posted to the message queue.
         """
 
-        if isinstance(event, TickEvent):
+        if isinstance(event, evmgr.TickEvent):
             # Called for each game tick. We check our keyboard presses here.
             for event in pygame.event.get():
                 # handle window manager closing our window
                 if event.type == pygame.QUIT:
-                    self.evManager.Post(QuitEvent())
+                    self.evManager.Post(evmgr.QuitEvent())
                 # handle key down events
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        self.evManager.Post(StateChangeEvent(None))
+                        self.evManager.Post(evmgr.StateChangeEvent(None))
                     else:
                         currentstate = self.model.state.peek()
                         if currentstate == model.STATE_MENU:
@@ -44,32 +44,32 @@ class Keyboard(object):
         """
         Handles menu key events.
         """
-        
+
         # escape pops the menu
         if event.key == pygame.K_ESCAPE:
-            self.evManager.Post(StateChangeEvent(None))
+            self.evManager.Post(evmgr.StateChangeEvent(None))
         # space plays the game
         if event.key == pygame.K_SPACE:
-            self.evManager.Post(StateChangeEvent(model.STATE_PLAY))
-    
+            self.evManager.Post(evmgr.StateChangeEvent(model.STATE_PLAY))
+
     def keydownhelp(self, event):
         """
         Handles help key events.
         """
-        
+
         # space, enter or escape pops help
         if event.key in [pygame.K_ESCAPE, pygame.K_SPACE, pygame.K_RETURN]:
-            self.evManager.Post(StateChangeEvent(None))
-    
+            self.evManager.Post(evmgr.StateChangeEvent(None))
+
     def keydownplay(self, event):
         """
         Handles play key events.
         """
 
         if event.key == pygame.K_ESCAPE:
-            self.evManager.Post(StateChangeEvent(None))
+            self.evManager.Post(evmgr.StateChangeEvent(None))
         # F1 shows the help
-        if event.key == pygame.K_F1:    
-            self.evManager.Post(StateChangeEvent(model.STATE_HELP))
+        if event.key == pygame.K_F1:
+            self.evManager.Post(evmgr.StateChangeEvent(model.STATE_HELP))
         else:
-            self.evManager.Post(InputEvent(event.unicode, None))
+            self.evManager.Post(evmgr.InputEvent(event.unicode, None))
